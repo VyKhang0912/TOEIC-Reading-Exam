@@ -1,0 +1,800 @@
+@using MyCompany.MyProject.Web.Startup
+@using MyCompany.MyProject.Toeic.Dto
+@using MyCompany.MyProject.Toeic
+@model PagedExamListDto
+@{
+    ViewBag.Title = "Quản lý Đề thi TOEIC Reading - Admin";
+    ViewBag.CurrentPageName = PageNames.ToeicAdmin;
+    int totalExams = Model?.TotalCount ?? 0;
+    int publishedExams = Model?.PublishedCount ?? 0;
+    int draftExams = Model?.DraftCount ?? 0;
+    int totalQuestionsAll = Model?.TotalQuestionsAllExams ?? 0;
+    int totalAttempts = Model?.TotalAttemptsAllExams ?? 0;
+    int totalPages = Model?.TotalPages ?? 1;
+    int currentPage = Model?.PageIndex ?? 1;
+}
+
+@Html.AntiForgeryToken()
+
+@section styles {
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --toeic-primary: #001631;
+            --toeic-secondary: #0051d5;
+            --toeic-bg: #f8f9ff;
+            --toeic-surface: #ffffff;
+            --toeic-border: #e2e8f0;
+            --toeic-text: #0d1c2e;
+            --toeic-muted: #64748b;
+            --toeic-success: #10b981;
+            --toeic-warning: #f59e0b;
+            --toeic-danger: #ef4444;
+        }
+
+        body, .content-wrapper {
+            background-color: var(--toeic-bg) !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--toeic-text);
+        }
+
+        .metric-card {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            border: 1px solid #edf2f7;
+            transition: all 0.2s ease;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.06);
+        }
+        .metric-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .btn-toeic-primary {
+            background-color: var(--toeic-primary);
+            color: #ffffff;
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 8px 18px;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        .btn-toeic-primary:hover {
+            background-color: #0b2545;
+            color: #ffffff;
+        }
+
+        .btn-toeic-outline {
+            background-color: #ffffff;
+            color: var(--toeic-text);
+            border: 1px solid var(--toeic-border);
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 8px 16px;
+            transition: all 0.2s;
+        }
+        .btn-toeic-outline:hover {
+            background-color: #f1f5f9;
+            color: var(--toeic-primary);
+        }
+
+        .exam-table {
+            background: #ffffff;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            border: 1px solid #edf2f7;
+        }
+        .exam-table th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            padding: 14px 18px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .exam-table td {
+            padding: 16px 18px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 14px;
+        }
+        .badge-status-active {
+            background-color: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+        }
+        .badge-status-draft {
+            background-color: #fef3c7;
+            color: #d97706;
+            border: 1px solid #fde68a;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+        }
+
+        .drag-drop-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 32px 20px;
+            text-align: center;
+            background-color: #f8fafc;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .drag-drop-zone:hover, .drag-drop-zone.dragover {
+            border-color: var(--toeic-secondary);
+            background-color: #eff6ff;
+        }
+
+        .page-link {
+            color: var(--toeic-primary);
+            border-radius: 6px;
+            margin: 0 2px;
+        }
+        .page-item.active .page-link {
+            background-color: var(--toeic-primary);
+            border-color: var(--toeic-primary);
+            color: #fff;
+        }
+    </style>
+}
+
+<div class="container-fluid pt-3 pb-5">
+    <!-- BREADCRUMB -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="text-muted small">
+            <i class="fas fa-home mr-1"></i> Trang chủ &nbsp;/&nbsp; <strong class="text-dark">Quản lý Đề thi TOEIC</strong>
+        </div>
+        <div>
+            <span class="badge badge-pill badge-light px-3 py-2 border text-muted">
+                <i class="fas fa-circle text-success mr-1" style="font-size: 8px;"></i> CSDL TOEIC ETS 2024: Đã kết nối (ToeicExamDb)
+            </span>
+        </div>
+    </div>
+
+    <!-- HEADER ACTION BAR -->
+    <div class="metric-card mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center">
+            <div class="mb-2 mb-md-0">
+                <div class="d-flex align-items-center">
+                    <h2 class="h4 font-weight-bold mb-0 text-dark">Quản lý Đề thi TOEIC Reading</h2>
+                    <span class="badge badge-primary ml-2 py-1 px-2 font-weight-bold" style="background:#001631;">ETS 2024</span>
+                </div>
+                <p class="text-muted mb-0 mt-1 small">
+                    Hệ thống quản lý, biên tập và import đề thi chuẩn 100 câu: Part 5 (101-130), Part 6 (131-146), Part 7 (147-200) trong 75 phút.
+                </p>
+            </div>
+            <div class="d-flex flex-wrap" style="gap: 10px;">
+                <a href="@Url.Action("DownloadTemplate", "ToeicAdmin")" download="standard_template.docx" class="btn btn-toeic-outline" title="Tải file Word mẫu chuẩn OpenXML 100 câu">
+                    <i class="fas fa-file-download mr-1 text-primary"></i> Tải mẫu file chuẩn (.docx)
+                </a>
+                <button type="button" id="btnOpenImportDocxModal" class="btn btn-toeic-primary shadow-sm" data-toggle="modal" data-target="#importDocxModal" onclick="openImportDocxModal();">
+                    <i class="fas fa-file-import mr-1"></i> Import đề từ Word DOCX
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4 SUMMARY METRIC CARDS -->
+    <div class="row mb-4">
+        <div class="col-12 col-sm-6 col-xl-3 mb-3">
+            <div class="metric-card h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted text-uppercase font-weight-bold small">Tổng đề trong CSDL</span>
+                    <div class="metric-icon" style="background: #e0f2fe; color: #0284c7;">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-weight-bold mb-1 text-dark">@((publishedExams + draftExams).ToString("N0"))</h3>
+                    <small class="text-muted">
+                        Đang mở thi: <strong>@publishedExams</strong> | Nháp: <strong>@draftExams</strong>
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3 mb-3">
+            <div class="metric-card h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted text-uppercase font-weight-bold small">Tổng câu hỏi</span>
+                    <div class="metric-icon" style="background: #ede9fe; color: #7c3aed;">
+                        <i class="fas fa-list-ol"></i>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-weight-bold mb-1 text-dark">@totalQuestionsAll.ToString("N0")</h3>
+                    <small class="text-muted">
+                        Dữ liệu thật trong SQL Server
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3 mb-3">
+            <div class="metric-card h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted text-uppercase font-weight-bold small">Đề xuất bản (Mobile App)</span>
+                    <div class="metric-icon" style="background: #dcfce7; color: #16a34a;">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-weight-bold mb-1 text-dark">@publishedExams</h3>
+                    <div class="progress mb-1" style="height: 6px;">
+                        @{
+                            int totalAll = publishedExams + draftExams;
+                            int pct = totalAll > 0 ? (publishedExams * 100 / totalAll) : 0;
+                        }
+                        <div class="progress-bar bg-success" role="progressbar" style="width: @pct%;"></div>
+                    </div>
+                    <small class="text-muted">Hiển thị trên Flutter App (@pct%)</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3 mb-3">
+            <div class="metric-card h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted text-uppercase font-weight-bold small">Lượt thi học viên</span>
+                    <div class="metric-icon" style="background: #fef3c7; color: #d97706;">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-weight-bold mb-1 text-dark">@totalAttempts.ToString("N0")</h3>
+                    <small class="text-muted">Đã ghi nhận trong DB</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTER & SEARCH BAR (WITH STATUS & PAGINATION CONTROLS) -->
+    <div class="metric-card mb-3 py-3">
+        <form method="get" action="@Url.Action("Index", "ToeicAdmin")" class="row align-items-center">
+            <div class="col-12 col-md-5 mb-2 mb-md-0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text bg-white border-right-0"><i class="fas fa-search text-muted"></i></span>
+                    </div>
+                    <input type="text" name="keyword" value="@Model.Keyword" class="form-control border-left-0" placeholder="Tìm theo mã đề hoặc tiêu đề..." />
+                </div>
+            </div>
+
+            <div class="col-6 col-md-3 mb-2 mb-md-0">
+                <select name="isPublished" class="form-control">
+                    <option value="" selected="@(!Model.FilterIsPublished.HasValue)">-- Tất cả trạng thái --</option>
+                    <option value="true" selected="@(Model.FilterIsPublished == true)">Đang mở thi (Active)</option>
+                    <option value="false" selected="@(Model.FilterIsPublished == false)">Bản nháp (Draft)</option>
+                </select>
+            </div>
+
+            <div class="col-6 col-md-2 mb-2 mb-md-0">
+                <select name="pageSize" class="form-control">
+                    <option value="10" selected="@(Model.PageSize == 10)">10 đề / trang</option>
+                    <option value="20" selected="@(Model.PageSize == 20)">20 đề / trang</option>
+                    <option value="50" selected="@(Model.PageSize == 50)">50 đề / trang</option>
+                    <option value="100" selected="@(Model.PageSize == 100)">100 đề / trang</option>
+                </select>
+            </div>
+
+            <div class="col-12 col-md-2 text-md-right">
+                <button type="submit" class="btn btn-primary btn-block" style="background-color: var(--toeic-primary); border: none;">
+                    <i class="fas fa-filter mr-1"></i> Lọc
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- EXAM TABLE -->
+    <div class="exam-table table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th style="width: 70px;">STT</th>
+                    <th style="width: 160px;">Mã đề</th>
+                    <th>Tên đề thi</th>
+                    <th style="width: 140px;">Số câu hỏi</th>
+                    <th style="width: 120px;">Thời lượng</th>
+                    <th style="width: 140px;">Trạng thái</th>
+                    <th style="width: 100px;">Lượt thi</th>
+                    <th style="width: 180px;" class="text-center">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model?.Items == null || !Model.Items.Any())
+                {
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <i class="fas fa-folder-open text-muted fa-3x mb-3 d-block"></i>
+                            <h5 class="text-muted">Không tìm thấy đề thi phù hợp!</h5>
+                            <p class="text-muted small">Hãy thử tìm với từ khóa khác hoặc nhấn <strong>"Import đề từ Word DOCX"</strong> để thêm đề mới.</p>
+                            @if (!string.IsNullOrWhiteSpace(Model?.Keyword) || Model?.FilterIsPublished.HasValue == true)
+                            {
+                                <a href="@Url.Action("Index", "ToeicAdmin")" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-undo mr-1"></i> Xóa bộ lọc
+                                </a>
+                            }
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    int index = 1;
+                    foreach (var item in Model.Items)
+                    {
+                        int rowNumber = (currentPage - 1) * Model.PageSize + index;
+                        <tr>
+                            <td class="font-weight-bold text-muted">@rowNumber</td>
+                            <td>
+                                <span class="badge badge-light border text-dark font-weight-bold px-2 py-1">
+                                    @item.Code
+                                </span>
+                            </td>
+                            <td>
+                                <div class="font-weight-bold text-dark">@item.Title</div>
+                                <div class="text-muted small">@item.Description</div>
+                            </td>
+                            <td>
+                                <span class="badge badge-info" title="Tổng số câu trong đề">@item.TotalQuestions câu</span>
+                                @if (item.TotalQuestions == 100)
+                                {
+                                    <span class="badge badge-success ml-1" title="Đủ chuẩn Reading 100 câu: P5(30), P6(16), P7(54)">ETS 100</span>
+                                }
+                            </td>
+                            <td>
+                                <i class="far fa-clock text-muted mr-1"></i> @item.DurationMinutes phút
+                            </td>
+                            <td>
+                                @if (item.IsPublished)
+                                {
+                                    <span class="badge-status-active">
+                                        <i class="fas fa-check-circle mr-1"></i> Đang mở thi
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status-draft">
+                                        <i class="fas fa-edit mr-1"></i> Bản nháp
+                                    </span>
+                                }
+                            </td>
+                            <td class="font-weight-bold text-center">@item.AttemptCount</td>
+                            <td class="text-center">
+                                <a href="@Url.Action("Edit", "ToeicAdmin", new { id = item.Id })" class="btn btn-sm btn-outline-primary mr-1" title="Xem trước và Chỉnh sửa đề thi">
+                                    <i class="fas fa-edit"></i> Soạn thảo
+                                </a>
+                                @if (item.IsPublished)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-warning mr-1" onclick="togglePublish(@item.Id, false)" title="Chuyển về Bản nháp (Thu hồi khỏi Mobile)">
+                                        <i class="fas fa-eye-slash"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-success mr-1" onclick="togglePublish(@item.Id, true)" title="Xuất bản đề thi cho học viên làm bài">
+                                        <i class="fas fa-globe"></i>
+                                    </button>
+                                }
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteExam(@item.Id, '@item.Code')" title="Xóa đề thi">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        index++;
+                    }
+                }
+            </tbody>
+        </table>
+
+        <!-- PAGINATION BAR -->
+        @if (totalPages > 1)
+        {
+            <div class="d-flex justify-content-between align-items-center p-3 border-top bg-light">
+                <div class="text-muted small">
+                    Hiển thị <strong>@((currentPage - 1) * Model.PageSize + 1) - @(Math.Min(currentPage * Model.PageSize, totalExams))</strong> trong tổng số <strong>@totalExams</strong> đề thi
+                </div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm mb-0">
+                        @if (currentPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@Url.Action("Index", "ToeicAdmin", new { keyword = Model.Keyword, isPublished = Model.FilterIsPublished, pageSize = Model.PageSize, pageIndex = currentPage - 1 })">
+                                    <i class="fas fa-chevron-left"></i> Trước
+                                </a>
+                            </li>
+                        }
+
+                        @{
+                            int startPage = Math.Max(1, currentPage - 2);
+                            int endPage = Math.Min(totalPages, currentPage + 2);
+                            if (startPage > 1)
+                            {
+                                <li class="page-item"><a class="page-link" href="@Url.Action("Index", "ToeicAdmin", new { keyword = Model.Keyword, isPublished = Model.FilterIsPublished, pageSize = Model.PageSize, pageIndex = 1 })">1</a></li>
+                                if (startPage > 2)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                }
+                            }
+
+                            for (int p = startPage; p <= endPage; p++)
+                            {
+                                <li class="page-item @(p == currentPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Index", "ToeicAdmin", new { keyword = Model.Keyword, isPublished = Model.FilterIsPublished, pageSize = Model.PageSize, pageIndex = p })">@p</a>
+                                </li>
+                            }
+
+                            if (endPage < totalPages)
+                            {
+                                if (endPage < totalPages - 1)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                }
+                                <li class="page-item"><a class="page-link" href="@Url.Action("Index", "ToeicAdmin", new { keyword = Model.Keyword, isPublished = Model.FilterIsPublished, pageSize = Model.PageSize, pageIndex = totalPages })">@totalPages</a></li>
+                            }
+                        }
+
+                        @if (currentPage < totalPages)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@Url.Action("Index", "ToeicAdmin", new { keyword = Model.Keyword, isPublished = Model.FilterIsPublished, pageSize = Model.PageSize, pageIndex = currentPage + 1 })">
+                                    Sau <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- MODAL IMPORT DOCX -->
+<div class="modal fade" id="importDocxModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius: 14px; overflow: hidden; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header text-white" style="background-color: var(--toeic-primary); border: none;">
+                <h5 class="modal-title font-weight-bold" id="importModalLabel">
+                    <i class="fas fa-file-word mr-2 text-primary"></i> Nhập Đề thi TOEIC từ File Word (.docx)
+                </h5>
+                <button type="button" class="close text-white" onclick="closeImportDocxModal();" aria-label="Close" style="opacity: 0.9;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body p-4">
+                <div class="alert alert-info border-0 mb-3" style="background-color: #eff6ff; color: #1e40af; border-radius: 10px;">
+                    <div class="d-flex">
+                        <i class="fas fa-info-circle mr-2 mt-1" style="font-size: 16px;"></i>
+                        <div class="small">
+                            <strong>Định dạng đề thi Reading chuẩn ETS 100 câu:</strong><br />
+                            • File Word gồm 3 phần: Part 5 (101-130), Part 6 (131-146), Part 7 (147-200).<br />
+                            • Đáp án đúng được đánh dấu bằng dấu sao (ví dụ: <code>*A. option</code> hoặc <code>A. *option</code>).<br />
+                            • Tự động trích xuất đoạn văn bài đọc và hình ảnh nhúng trong file Word.<br />
+                            • Nếu chưa có file mẫu, vui lòng nhấn <a href="@Url.Action("DownloadTemplate", "ToeicAdmin")" download="standard_template.docx" class="font-weight-bold text-primary text-underline">Tải mẫu file chuẩn (.docx)</a>.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DRAG & DROP AREA -->
+                <div class="drag-drop-zone mb-3" id="dropZone" onclick="document.getElementById('docxFileInput').click();">
+                    <i class="fas fa-cloud-upload-alt text-primary fa-3x mb-2 d-block"></i>
+                    <h6 class="font-weight-bold mb-1 text-dark" id="dropZoneTitle">Nhấp vào đây hoặc kéo thả file .docx vào khung</h6>
+                    <p class="text-muted small mb-0" id="dropZoneSubtitle">Hỗ trợ các file định dạng Word (.docx), kích thước tối đa 30MB</p>
+                    <input type="file" id="docxFileInput" accept=".docx" style="display: none;" onchange="handleFileSelect(this);" />
+                </div>
+
+                <!-- FILE SELECTED PREVIEW -->
+                <div id="filePreviewCard" class="card border mb-3 d-none" style="border-radius: 10px; background: #fafafa;">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-file-word text-primary fa-2x mr-3"></i>
+                            <div>
+                                <strong id="selectedFileName" class="text-dark d-block">test.docx</strong>
+                                <small id="selectedFileSize" class="text-muted">0 KB</small>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearSelectedFile();">
+                            <i class="fas fa-times"></i> Hủy chọn
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PROGRESS BAR -->
+                <div id="uploadProgressContainer" class="d-none mb-3">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Đang xử lý phân tích và lưu vào CSDL...</span>
+                        <span id="progressPercent">Đang tải...</span>
+                    </div>
+                    <div class="progress" style="height: 10px; border-radius: 6px;">
+                        <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- ERROR ALERT BOX (EXPANDABLE & DETAILED) -->
+                <div id="errorContainer" class="alert alert-danger d-none border shadow-sm" style="border-radius: 10px; background-color: #fef2f2; border-color: #fecaca !important; color: #991b1b;">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-exclamation-circle mr-2 mt-1 fa-lg text-danger"></i>
+                        <div class="w-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong class="text-danger" id="errorHeaderTitle">Nhập đề thất bại! Chi tiết các lỗi được phát hiện:</strong>
+                                <span class="badge badge-danger" id="errorCountBadge">0 lỗi</span>
+                            </div>
+                            <div id="errorList" class="mt-2 small" style="max-height: 280px; overflow-y: auto; background: #fff; padding: 10px 14px; border-radius: 8px; border: 1px solid #fed7d7;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-light" style="border: none;">
+                <button type="button" class="btn btn-secondary" onclick="closeImportDocxModal();">Đóng</button>
+                <button type="button" id="btnSubmitImport" class="btn btn-toeic-primary shadow-sm" onclick="submitImportDocx();" disabled>
+                    <i class="fas fa-upload mr-1"></i> Bắt đầu Import vào CSDL
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        var selectedFile = null;
+
+        function openImportDocxModal() {
+            clearSelectedFile();
+            $('#errorContainer').addClass('d-none');
+            $('#uploadProgressContainer').addClass('d-none');
+            $('#importDocxModal').modal('show');
+        }
+
+        function closeImportDocxModal() {
+            $('#importDocxModal').modal('hide');
+        }
+
+        function handleFileSelect(input) {
+            if (input.files && input.files[0]) {
+                var file = input.files[0];
+                if (!file.name.toLowerCase().endsWith('.docx')) {
+                    abp.message.error('Vui lòng chỉ chọn file Word có định dạng .docx!');
+                    clearSelectedFile();
+                    return;
+                }
+                selectedFile = file;
+                $('#selectedFileName').text(file.name);
+                $('#selectedFileSize').text((file.size / 1024).toFixed(1) + ' KB');
+                $('#filePreviewCard').removeClass('d-none');
+                $('#dropZone').addClass('d-none');
+                $('#btnSubmitImport').prop('disabled', false);
+                $('#errorContainer').addClass('d-none');
+            }
+        }
+
+        function clearSelectedFile() {
+            selectedFile = null;
+            $('#docxFileInput').val('');
+            $('#filePreviewCard').addClass('d-none');
+            $('#dropZone').removeClass('d-none');
+            $('#btnSubmitImport').prop('disabled', true);
+            $('#errorContainer').addClass('d-none');
+        }
+
+        $(document).ready(function () {
+            var dropZone = document.getElementById('dropZone');
+            if (dropZone) {
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropZone.classList.add('dragover');
+                    }, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropZone.classList.remove('dragover');
+                    }, false);
+                });
+
+                dropZone.addEventListener('drop', function (e) {
+                    var dt = e.dataTransfer;
+                    var files = dt.files;
+                    if (files.length > 0) {
+                        document.getElementById('docxFileInput').files = files;
+                        handleFileSelect(document.getElementById('docxFileInput'));
+                    }
+                }, false);
+            }
+        });
+
+        function submitImportDocx() {
+            if (!selectedFile) {
+                abp.message.warn('Vui lòng chọn file Word (.docx) trước!');
+                return;
+            }
+
+            var formData = new FormData();
+            formData.append('docxFile', selectedFile);
+
+            var token = $('input[name="__RequestVerificationToken"]').val();
+            if (token) {
+                formData.append('__RequestVerificationToken', token);
+            }
+
+            $('#uploadProgressContainer').removeClass('d-none');
+            $('#errorContainer').addClass('d-none');
+            $('#btnSubmitImport').prop('disabled', true);
+
+            $.ajax({
+                url: '@Url.Action("ImportDocx", "ToeicAdmin")',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'RequestVerificationToken': token || ''
+                },
+                success: function (rawRes) {
+                    $('#uploadProgressContainer').addClass('d-none');
+                    $('#btnSubmitImport').prop('disabled', false);
+
+                    // Xử lý cả response bọc bởi ABP AjaxResponse hoặc raw JSON
+                    var res = (rawRes && rawRes.result !== undefined) ? rawRes.result : rawRes;
+
+                    if (res && res.success === true) {
+                        closeImportDocxModal();
+
+                        var infoHtml = 
+                            '• Tên đề thi: ' + (res.title || 'N/A') + '\n' +
+                            '• Mã đề thi: ' + (res.code || 'N/A') + '\n' +
+                            '• Tổng số câu: ' + (res.total || 0) + ' câu\n' +
+                            '• Part 5 (Incomplete Sentences): ' + (res.p5 || 0) + ' câu\n' +
+                            '• Part 6 (Text Completion): ' + (res.p6 || 0) + ' câu\n' +
+                            '• Part 7 (Reading Comprehension): ' + (res.p7 || 0) + ' câu\n' +
+                            '• Trạng thái CSDL: ' + (res.dbStatus || 'Đã lưu thành công vào SQL Server (ToeicExamDb)');
+
+                        abp.message.success(
+                            infoHtml,
+                            'Import Thành Công!',
+                            function () {
+                                window.location.href = '@Url.Action("Index", "ToeicAdmin")';
+                            }
+                        );
+                    } else {
+                        $('#errorContainer').removeClass('d-none');
+                        var errorList = [];
+                        if (res && res.errors && Array.isArray(res.errors) && res.errors.length > 0) {
+                            errorList = res.errors;
+                        } else if (res && res.validationErrors && Array.isArray(res.validationErrors) && res.validationErrors.length > 0) {
+                            errorList = res.validationErrors;
+                        } else if (res && res.message) {
+                            errorList = [res.message];
+                        } else {
+                            errorList = ['Định dạng file không khớp với cấu trúc đề thi TOEIC. Vui lòng kiểm tra lại số câu hỏi, cú pháp đáp án hoặc tải file mẫu chuẩn.'];
+                        }
+
+                        $('#errorCountBadge').text(errorList.length + ' lỗi');
+                        var listHtml = '<ol class="pl-3 mb-0" style="color: #b91c1c;">';
+                        errorList.forEach(function (err) {
+                            listHtml += '<li class="mb-1 font-weight-500">' + $('<div>').text(err).html() + '</li>';
+                        });
+                        listHtml += '</ol>';
+                        $('#errorList').html(listHtml);
+
+                        var errorEl = document.getElementById('errorContainer');
+                        if (errorEl) {
+                            errorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                    }
+                },
+                error: function (xhr) {
+                    $('#uploadProgressContainer').addClass('d-none');
+                    $('#btnSubmitImport').prop('disabled', false);
+                    $('#errorContainer').removeClass('d-none');
+
+                    var errorMessages = [];
+                    if (xhr.responseJSON) {
+                        var json = (xhr.responseJSON.result !== undefined) ? xhr.responseJSON.result : xhr.responseJSON;
+                        if (json.errors && Array.isArray(json.errors)) {
+                            errorMessages = json.errors;
+                        } else if (json.error && json.error.validationErrors && Array.isArray(json.error.validationErrors)) {
+                            json.error.validationErrors.forEach(function (ve) { errorMessages.push(ve.message || ve); });
+                        } else if (json.error && json.error.message) {
+                            errorMessages.push(json.error.message);
+                            if (json.error.details) errorMessages.push(json.error.details);
+                        } else if (json.message) {
+                            errorMessages.push(json.message);
+                        }
+                    }
+                    if (errorMessages.length === 0) {
+                        errorMessages.push('Lỗi kết nối máy chủ hoặc kích thước file vượt giới hạn quy định (Mã lỗi HTTP: ' + (xhr.status || '500') + ')');
+                    }
+
+                    $('#errorCountBadge').text(errorMessages.length + ' lỗi');
+                    var listHtml = '<ol class="pl-3 mb-0" style="color: #b91c1c;">';
+                    errorMessages.forEach(function (err) {
+                        listHtml += '<li class="mb-1 font-weight-500">' + $('<div>').text(err).html() + '</li>';
+                    });
+                    listHtml += '</ol>';
+                    $('#errorList').html(listHtml);
+
+                    var errorEl = document.getElementById('errorContainer');
+                    if (errorEl) {
+                        errorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }
+            });
+        }
+
+        function togglePublish(examId, isPublish) {
+            var actionText = isPublish ? "xuất bản cho học viên thi" : "chuyển về bản nháp";
+            var token = $('input[name="__RequestVerificationToken"]').val();
+
+            abp.message.confirm(
+                'Bạn có chắc chắn muốn ' + actionText + ' đề thi này?',
+                'Xác nhận trạng thái đề',
+                function (isConfirmed) {
+                    if (isConfirmed) {
+                        $.post('@Url.Action("Publish", "ToeicAdmin")', { 
+                            id: examId, 
+                            isPublished: isPublish,
+                            __RequestVerificationToken: token 
+                        }, function (rawRes) {
+                            var res = (rawRes && rawRes.result !== undefined) ? rawRes.result : rawRes;
+                            if (res && res.success) {
+                                abp.notify.success('Cập nhật trạng thái thành công!');
+                                setTimeout(function () { location.reload(); }, 600);
+                            } else {
+                                abp.notify.error('Cập nhật thất bại!');
+                            }
+                        });
+                    }
+                }
+            );
+        }
+
+        function deleteExam(examId, examCode) {
+            var token = $('input[name="__RequestVerificationToken"]').val();
+
+            abp.message.confirm(
+                'Bạn có chắc chắn muốn xóa đề thi ' + examCode + '? Toàn bộ câu hỏi và lượt thi liên quan sẽ bị xóa.',
+                'Cảnh báo xóa đề thi',
+                function (isConfirmed) {
+                    if (isConfirmed) {
+                        $.post('@Url.Action("Delete", "ToeicAdmin")', { 
+                            id: examId,
+                            __RequestVerificationToken: token 
+                        }, function (rawRes) {
+                            var res = (rawRes && rawRes.result !== undefined) ? rawRes.result : rawRes;
+                            if (res && res.success) {
+                                abp.notify.success('Đã xóa đề thi thành công!');
+                                setTimeout(function () { location.reload(); }, 600);
+                            } else {
+                                abp.notify.error('Xóa thất bại!');
+                            }
+                        });
+                    }
+                }
+            );
+        }
+    </script>
+}

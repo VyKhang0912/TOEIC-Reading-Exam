@@ -1,0 +1,716 @@
+@using MyCompany.MyProject.Web.Startup
+@using MyCompany.MyProject.Toeic.Dto
+@using MyCompany.MyProject.Toeic
+@model ExamDetailDto
+@{
+    ViewBag.Title = "Soạn thảo & Chỉnh sửa Đề thi TOEIC - " + Model.Code;
+    ViewBag.CurrentPageName = PageNames.ToeicAdmin;
+    var allQuestions = Model.Questions.OrderBy(q => q.QuestionNumber).ToList();
+    var p5Questions = allQuestions.Where(q => q.Part == ToeicPart.Part5).ToList();
+    var p6Questions = allQuestions.Where(q => q.Part == ToeicPart.Part6).ToList();
+    var p7Questions = allQuestions.Where(q => q.Part == ToeicPart.Part7).ToList();
+}
+
+@section styles {
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --toeic-primary: #001631;
+            --toeic-secondary: #0051d5;
+            --toeic-bg: #f8f9ff;
+            --toeic-surface: #ffffff;
+            --toeic-border: #e2e8f0;
+            --toeic-text: #0d1c2e;
+        }
+
+        body, .content-wrapper {
+            background-color: var(--toeic-bg) !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--toeic-text);
+        }
+
+        .workspace-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            height: calc(100vh - 175px);
+            min-height: 580px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .workspace-header {
+            padding: 12px 18px;
+            border-bottom: 1px solid #e2e8f0;
+            background-color: #f8fafc;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .workspace-body {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .part-tab-link {
+            border-radius: 6px !important;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .q-matrix-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+        .q-matrix-btn .q-num {
+            font-size: 11px;
+            line-height: 1;
+        }
+        .q-matrix-btn .q-key {
+            font-size: 11px;
+            font-weight: 700;
+            color: #0284c7;
+            line-height: 1;
+            margin-top: 2px;
+        }
+        .q-matrix-btn:hover {
+            border-color: var(--toeic-secondary);
+            background: #eff6ff;
+            transform: translateY(-1px);
+        }
+        .q-matrix-btn.active {
+            background-color: var(--toeic-primary) !important;
+            color: #ffffff !important;
+            border-color: var(--toeic-primary) !important;
+            box-shadow: 0 2px 6px rgba(0, 22, 49, 0.35);
+        }
+        .q-matrix-btn.active .q-key {
+            color: #38bdf8 !important;
+        }
+
+        .passage-box {
+            background: #fbfcfe;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: #1e293b;
+            white-space: pre-wrap;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+
+        .passage-img-container {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f8fafc;
+            padding: 8px;
+            text-align: center;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+        .passage-img-container:hover {
+            border-color: #3b82f6;
+        }
+        .passage-img-item {
+            max-width: 100%;
+            max-height: 320px;
+            object-fit: contain;
+            border-radius: 6px;
+            cursor: zoom-in;
+            transition: transform 0.2s;
+        }
+        .passage-img-item:hover {
+            transform: scale(1.01);
+        }
+
+        .option-edit-row {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        .option-edit-row:hover, .option-edit-row.is-correct {
+            border-color: #3b82f6;
+            background-color: #f8faff;
+        }
+        .option-edit-row.is-correct {
+            border-color: #10b981;
+            background-color: #f0fdf4;
+        }
+
+        .unsaved-indicator {
+            animation: pulse-warn 1.5s infinite;
+        }
+        @@keyframes pulse-warn {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+}
+
+<div class="container-fluid pt-2 pb-4">
+    <!-- TOP TOOLBAR -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 bg-white p-3 rounded-lg shadow-sm border">
+        <div class="d-flex align-items-center">
+            <a href="@Url.Action("Index", "ToeicAdmin")" class="btn btn-sm btn-outline-secondary mr-3" title="Quay lại danh sách đề">
+                <i class="fas fa-arrow-left mr-1"></i> Quay lại
+            </a>
+            <div>
+                <h4 class="mb-0 font-weight-bold text-dark d-inline">@Model.Title</h4>
+                <span class="badge badge-dark ml-2">@Model.Code</span>
+                <span class="badge @(Model.IsPublished ? "badge-success" : "badge-warning") ml-1">
+                    @(Model.IsPublished ? "Đang mở thi" : "Bản nháp")
+                </span>
+            </div>
+        </div>
+        <div class="d-flex align-items-center" style="gap: 10px;">
+            <span class="text-muted small mr-2">
+                <i class="far fa-clock mr-1"></i> 75 phút | <strong>100</strong> câu (Part 5: 30, Part 6: 16, Part 7: 54)
+            </span>
+            <button type="button" class="btn btn-sm @(Model.IsPublished ? "btn-warning" : "btn-success") shadow-sm" onclick="togglePublish(@Model.Id, @((!Model.IsPublished).ToString().ToLower()))">
+                <i class="fas @(Model.IsPublished ? "fa-eye-slash" : "fa-globe") mr-1"></i>
+                @(Model.IsPublished ? "Chuyển về Bản nháp" : "Xuất bản đề thi")
+            </button>
+        </div>
+    </div>
+
+    <!-- 3-COLUMN WORKSPACE -->
+    <div class="row">
+        <!-- COLUMN 1: QUESTION MATRIX / NAVIGATION -->
+        <div class="col-12 col-lg-3 mb-3 mb-lg-0">
+            <div class="workspace-card">
+                <div class="workspace-header">
+                    <span><i class="fas fa-th mr-1 text-primary"></i> Danh mục 100 Câu hỏi</span>
+                    <span class="badge badge-primary font-weight-bold" id="currentQBadge">Câu 101</span>
+                </div>
+                <div class="p-2 border-bottom bg-light">
+                    <ul class="nav nav-pills nav-justified" id="partTabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link part-tab-link active py-1 small font-weight-bold" id="tab-p5" href="javascript:void(0)" onclick="onPartTabClicked('p5');">
+                                P5 (101-130)
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link part-tab-link py-1 small font-weight-bold" id="tab-p6" href="javascript:void(0)" onclick="onPartTabClicked('p6');">
+                                P6 (131-146)
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link part-tab-link py-1 small font-weight-bold" id="tab-p7" href="javascript:void(0)" onclick="onPartTabClicked('p7');">
+                                P7 (147-200)
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="workspace-body p-2">
+                    <div class="tab-content" id="partTabsContent">
+                        <!-- PART 5 PANE (101 - 130) -->
+                        <div class="tab-pane fade show active" id="pane-p5" role="tabpanel">
+                            <div class="d-flex flex-wrap justify-content-center">
+                                @foreach (var q in p5Questions)
+                                {
+                                    <button type="button" class="q-matrix-btn @(q.QuestionNumber == 101 ? "active" : "")" id="btn-q-@q.QuestionNumber" onclick="selectQuestion(@q.QuestionNumber)" title="Part 5 - Câu @q.QuestionNumber">
+                                        <span class="q-num">@q.QuestionNumber</span>
+                                        <span class="q-key" id="matrix-key-@q.QuestionNumber">@q.CorrectOption</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- PART 6 PANE (131 - 146) -->
+                        <div class="tab-pane fade" id="pane-p6" role="tabpanel">
+                            <div class="d-flex flex-wrap justify-content-center">
+                                @foreach (var q in p6Questions)
+                                {
+                                    <button type="button" class="q-matrix-btn" id="btn-q-@q.QuestionNumber" onclick="selectQuestion(@q.QuestionNumber)" title="Part 6 - Câu @q.QuestionNumber">
+                                        <span class="q-num">@q.QuestionNumber</span>
+                                        <span class="q-key" id="matrix-key-@q.QuestionNumber">@q.CorrectOption</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- PART 7 PANE (147 - 200) -->
+                        <div class="tab-pane fade" id="pane-p7" role="tabpanel">
+                            <div class="d-flex flex-wrap justify-content-center">
+                                @foreach (var q in p7Questions)
+                                {
+                                    <button type="button" class="q-matrix-btn" id="btn-q-@q.QuestionNumber" onclick="selectQuestion(@q.QuestionNumber)" title="Part 7 - Câu @q.QuestionNumber">
+                                        <span class="q-num">@q.QuestionNumber</span>
+                                        <span class="q-key" id="matrix-key-@q.QuestionNumber">@q.CorrectOption</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 2: PASSAGE / CONTEXT PREVIEW -->
+        <div class="col-12 col-lg-5 mb-3 mb-lg-0">
+            <div class="workspace-card">
+                <div class="workspace-header">
+                    <span><i class="fas fa-file-alt mr-1 text-info"></i> Nội dung Đọc hiểu (Passage)</span>
+                    <span class="badge badge-light border text-muted" id="passageTypeBadge">Độc lập</span>
+                </div>
+                <div class="workspace-body">
+                    <!-- PART 5 NOTICE -->
+                    <div id="part5Notice" class="alert alert-secondary border">
+                        <h6 class="font-weight-bold text-dark mb-2"><i class="fas fa-info-circle mr-1 text-primary"></i> Part 5: Incomplete Sentences (Câu độc lập)</h6>
+                        <p class="small text-muted mb-0">
+                            Các câu hỏi từ 101 - 130 là câu độc lập không kèm bài đọc. Thí sinh chọn phương án đúng A, B, C hoặc D để hoàn thành câu.
+                        </p>
+                    </div>
+
+                    <!-- PASSAGE CONTAINER FOR PART 6 & 7 -->
+                    <div id="passageContentContainer" class="d-none">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="font-weight-bold text-primary mb-0" id="passageTitleText">Tiêu đề đoạn văn</h6>
+                            <span class="badge badge-info" id="passageGroupOrder">Nhóm câu</span>
+                        </div>
+                        <div class="passage-box mb-3" id="passageBodyText">
+                            <!-- Nội dung bài đọc -->
+                        </div>
+                        <div id="passageImagesContainer" class="d-none">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small font-weight-bold text-muted"><i class="fas fa-images mr-1"></i> Hình ảnh đính kèm bài đọc:</span>
+                                <small class="text-primary font-weight-bold"><i class="fas fa-search-plus mr-1"></i> Nhấp vào ảnh để phóng to</small>
+                            </div>
+                            <div id="passageImagesList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 3: QUESTION & OPTIONS EDITOR -->
+        <div class="col-12 col-lg-4">
+            <div class="workspace-card">
+                <div class="workspace-header">
+                    <div class="d-flex align-items-center">
+                        <span><i class="fas fa-edit mr-1 text-warning"></i> Soạn thảo Câu hỏi</span>
+                        <span id="unsavedBadge" class="badge badge-warning ml-2 d-none unsaved-indicator" title="Có nội dung chỉnh sửa chưa lưu">
+                            <i class="fas fa-exclamation-circle mr-1"></i> Chưa lưu
+                        </span>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary" id="btnPrevQ" onclick="navigateQuestion(-1)" title="Câu trước">
+                            <i class="fas fa-chevron-left mr-1"></i> Trước
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="btnNextQ" onclick="navigateQuestion(1)" title="Câu tiếp">
+                            Tiếp <i class="fas fa-chevron-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="workspace-body">
+                    <input type="hidden" id="editQuestionId" />
+                    <input type="hidden" id="editQuestionNumber" />
+
+                    <!-- QUESTION STEM -->
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold small text-dark d-flex justify-content-between">
+                            <span>Nội dung câu hỏi (Stem):</span>
+                            <span class="text-primary font-weight-bold" id="editQuestionNumberLabel">Câu 101 (Part 5)</span>
+                        </label>
+                        <textarea id="editStem" class="form-control" rows="3" placeholder="Nhập câu hỏi hoặc câu có chỗ trống..."></textarea>
+                    </div>
+
+                    <!-- 4 OPTIONS -->
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold small text-dark mb-2">Phương án lựa chọn & Đáp án đúng:</label>
+
+                        <!-- OPTION A -->
+                        <div class="option-edit-row" id="row-opt-A">
+                            <div class="custom-control custom-radio mr-2">
+                                <input type="radio" id="correct-opt-A" name="correctOption" value="A" class="custom-control-input" onchange="onCorrectChanged('A')" />
+                                <label class="custom-control-label font-weight-bold" for="correct-opt-A">A</label>
+                            </div>
+                            <input type="hidden" id="id-opt-A" />
+                            <input type="text" id="text-opt-A" class="form-control form-control-sm" placeholder="Nội dung phương án A" />
+                        </div>
+
+                        <!-- OPTION B -->
+                        <div class="option-edit-row" id="row-opt-B">
+                            <div class="custom-control custom-radio mr-2">
+                                <input type="radio" id="correct-opt-B" name="correctOption" value="B" class="custom-control-input" onchange="onCorrectChanged('B')" />
+                                <label class="custom-control-label font-weight-bold" for="correct-opt-B">B</label>
+                            </div>
+                            <input type="hidden" id="id-opt-B" />
+                            <input type="text" id="text-opt-B" class="form-control form-control-sm" placeholder="Nội dung phương án B" />
+                        </div>
+
+                        <!-- OPTION C -->
+                        <div class="option-edit-row" id="row-opt-C">
+                            <div class="custom-control custom-radio mr-2">
+                                <input type="radio" id="correct-opt-C" name="correctOption" value="C" class="custom-control-input" onchange="onCorrectChanged('C')" />
+                                <label class="custom-control-label font-weight-bold" for="correct-opt-C">C</label>
+                            </div>
+                            <input type="hidden" id="id-opt-C" />
+                            <input type="text" id="text-opt-C" class="form-control form-control-sm" placeholder="Nội dung phương án C" />
+                        </div>
+
+                        <!-- OPTION D -->
+                        <div class="option-edit-row" id="row-opt-D">
+                            <div class="custom-control custom-radio mr-2">
+                                <input type="radio" id="correct-opt-D" name="correctOption" value="D" class="custom-control-input" onchange="onCorrectChanged('D')" />
+                                <label class="custom-control-label font-weight-bold" for="correct-opt-D">D</label>
+                            </div>
+                            <input type="hidden" id="id-opt-D" />
+                            <input type="text" id="text-opt-D" class="form-control form-control-sm" placeholder="Nội dung phương án D" />
+                        </div>
+                    </div>
+
+                    <!-- EXPLANATION -->
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold small text-dark">Lời giải thích chi tiết (Explanation):</label>
+                        <textarea id="editExplanation" class="form-control form-control-sm" rows="3" placeholder="Giải thích ngữ pháp, từ vựng hoặc dẫn chứng trong bài đọc..."></textarea>
+                    </div>
+
+                    <!-- SAVE BUTTON -->
+                    <button type="button" id="btnSaveQuestion" class="btn btn-primary btn-block font-weight-bold py-2 shadow-sm" style="background:#001631; border:none;" onclick="saveCurrentQuestion()">
+                        <i class="fas fa-save mr-1"></i> Lưu cập nhật câu này
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- IMAGE LIGHTBOX / ZOOM MODAL -->
+<div class="modal fade" id="imageZoomModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius: 12px; overflow: hidden; background: #000; border: none;">
+            <div class="modal-header text-white border-0 py-2" style="background: rgba(0,0,0,0.8);">
+                <h6 class="modal-title font-weight-bold" id="zoomModalTitle">
+                    <i class="fas fa-image mr-2 text-info"></i> Xem hình ảnh bài đọc chi tiết
+                </h6>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="opacity: 0.9;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-2 text-center" style="background: #111; max-height: 85vh; overflow: auto;">
+                <img id="zoomModalImg" src="" alt="Passage Image" style="max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.8);" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        var examData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = null }));
+        var currentQNum = 101;
+        var isDirty = false;
+
+        $(document).ready(function () {
+            selectQuestionInternal(101);
+
+            // Bắt sự kiện thay đổi dữ liệu trên form để cảnh báo chưa lưu
+            $('#editStem, #editExplanation, #text-opt-A, #text-opt-B, #text-opt-C, #text-opt-D').on('input', function () {
+                markDirty();
+            });
+
+            $('input[name="correctOption"]').on('change', function () {
+                markDirty();
+            });
+        });
+
+        function markDirty() {
+            if (!isDirty) {
+                isDirty = true;
+                $('#unsavedBadge').removeClass('d-none');
+            }
+        }
+
+        function clearDirty() {
+            isDirty = false;
+            $('#unsavedBadge').addClass('d-none');
+        }
+
+        function checkDirtyAndConfirm(onProceed) {
+            if (isDirty) {
+                abp.message.confirm(
+                    'Câu ' + currentQNum + ' có nội dung thay đổi chưa được lưu vào CSDL. Bạn có chắc chắn muốn bỏ qua thay đổi này để chuyển câu?',
+                    'Cảnh báo chưa lưu dữ liệu',
+                    function (isConfirmed) {
+                        if (isConfirmed) {
+                            clearDirty();
+                            onProceed();
+                        }
+                    }
+                );
+                return true;
+            } else {
+                onProceed();
+                return false;
+            }
+        }
+
+        // Chuyển trực tiếp Tab Part
+        function onPartTabClicked(partKey) {
+            var targetQ = 101;
+            if (partKey === 'p5') targetQ = 101;
+            else if (partKey === 'p6') targetQ = 131;
+            else if (partKey === 'p7') targetQ = 147;
+
+            // Nếu câu hiện tại đang thuộc Part này thì không cần đổi câu nếu không muốn, nhưng theo đề bài:
+            // "Mặc định chọn câu đầu tiên của Part tương ứng"
+            checkDirtyAndConfirm(function () {
+                activatePartTab(partKey);
+                selectQuestionInternal(targetQ);
+            });
+        }
+
+        function activatePartTab(partKey) {
+            $('.part-tab-link').removeClass('active');
+            $('.tab-pane').removeClass('show active');
+
+            $('#tab-' + partKey).addClass('active');
+            $('#pane-' + partKey).addClass('show active');
+        }
+
+        // Chọn câu bất kỳ từ 101 - 200
+        function selectQuestion(qNum) {
+            if (qNum === currentQNum) return;
+            checkDirtyAndConfirm(function () {
+                selectQuestionInternal(qNum);
+            });
+        }
+
+        function selectQuestionInternal(qNum) {
+            currentQNum = qNum;
+            var q = examData.Questions.find(x => x.QuestionNumber === qNum);
+            if (!q) return;
+
+            clearDirty();
+
+            // Khóa nút Trước / Tiếp ở ranh giới đề thi
+            $('#btnPrevQ').prop('disabled', qNum <= 101);
+            $('#btnNextQ').prop('disabled', qNum >= 200);
+
+            // Active button trong ma trận
+            $('.q-matrix-btn').removeClass('active');
+            var $matrixBtn = $('#btn-q-' + qNum);
+            $matrixBtn.addClass('active');
+            $('#currentQBadge').text('Câu ' + qNum);
+
+            var partName = q.Part === 5 ? 'Part 5' : q.Part === 6 ? 'Part 6' : 'Part 7';
+            $('#editQuestionNumberLabel').text('Câu ' + qNum + ' (' + partName + ')');
+
+            // Đảm bảo đúng Tab Part hiển thị
+            var targetTab = q.Part === 5 ? 'p5' : q.Part === 6 ? 'p6' : 'p7';
+            activatePartTab(targetTab);
+
+            // Cuộn nút ma trận vào tầm nhìn
+            if ($matrixBtn.length > 0) {
+                $matrixBtn[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            // Điền dữ liệu vào form Editor
+            $('#editQuestionId').val(q.Id);
+            $('#editQuestionNumber').val(q.QuestionNumber);
+            $('#editStem').val(q.Stem || '');
+            $('#editExplanation').val(q.Explanation || '');
+
+            // Options
+            ['A', 'B', 'C', 'D'].forEach(function (key) {
+                var opt = q.Options.find(o => o.OptionKey === key);
+                if (opt) {
+                    $('#id-opt-' + key).val(opt.Id);
+                    $('#text-opt-' + key).val(opt.Content || '');
+                } else {
+                    $('#id-opt-' + key).val(0);
+                    $('#text-opt-' + key).val('');
+                }
+            });
+
+            // Correct option radio
+            $('input[name="correctOption"][value="' + q.CorrectOption + '"]').prop('checked', true);
+            highlightCorrectRow(q.CorrectOption);
+
+            // Cột 2: Passage / Reading Content
+            if (q.Part === 5 || !q.QuestionGroupId) {
+                $('#part5Notice').removeClass('d-none');
+                $('#passageContentContainer').addClass('d-none');
+                $('#passageTypeBadge').text('Độc lập');
+            } else {
+                $('#part5Notice').addClass('d-none');
+                $('#passageContentContainer').removeClass('d-none');
+
+                var grp = examData.QuestionGroups.find(g => g.Id === q.QuestionGroupId);
+                if (grp) {
+                    $('#passageTitleText').text(grp.Title || 'Passage Reading');
+                    $('#passageGroupOrder').text('Nhóm ' + grp.GroupOrder);
+                    $('#passageTypeBadge').text(grp.PassageType || 'General');
+                    $('#passageBodyText').text(grp.PassageText || '');
+
+                    if (grp.ImageUrls && grp.ImageUrls.trim().length > 0) {
+                        $('#passageImagesContainer').removeClass('d-none');
+                        var imgs = grp.ImageUrls.split(';');
+                        var imgHtml = '';
+                        imgs.forEach(function (url, idx) {
+                            var trimmedUrl = url.trim();
+                            if (trimmedUrl.length > 0) {
+                                imgHtml += 
+                                    '<div class="passage-img-container">' +
+                                        '<img src="' + trimmedUrl + '" class="passage-img-item" alt="Bài đọc #' + (idx + 1) + '" onclick="zoomImage(\'' + trimmedUrl + '\', \'Bài đọc nhóm ' + grp.GroupOrder + ' - Ảnh ' + (idx + 1) + '\');" />' +
+                                        '<div class="mt-1"><button type="button" class="btn btn-xs btn-outline-primary py-0" onclick="zoomImage(\'' + trimmedUrl + '\', \'Bài đọc nhóm ' + grp.GroupOrder + ' - Ảnh ' + (idx + 1) + '\');"><i class="fas fa-search-plus mr-1"></i> Xem ảnh lớn</button></div>' +
+                                    '</div>';
+                            }
+                        });
+                        $('#passageImagesList').html(imgHtml);
+                    } else {
+                        $('#passageImagesContainer').addClass('d-none');
+                        $('#passageImagesList').empty();
+                    }
+                }
+            }
+        }
+
+        function onCorrectChanged(key) {
+            highlightCorrectRow(key);
+            markDirty();
+        }
+
+        function highlightCorrectRow(key) {
+            $('.option-edit-row').removeClass('is-correct');
+            $('#row-opt-' + key).addClass('is-correct');
+        }
+
+        // Chuyển câu qua nút Trước/Tiếp (vượt ranh giới Part an toàn)
+        function navigateQuestion(delta) {
+            var newQ = currentQNum + delta;
+            if (newQ >= 101 && newQ <= 200) {
+                checkDirtyAndConfirm(function () {
+                    selectQuestionInternal(newQ);
+                });
+            }
+        }
+
+        // Phóng to ảnh bài đọc
+        function zoomImage(url, title) {
+            $('#zoomModalTitle').html('<i class="fas fa-image mr-2 text-info"></i> ' + (title || 'Xem hình ảnh bài đọc chi tiết'));
+            $('#zoomModalImg').attr('src', url);
+            $('#imageZoomModal').modal('show');
+        }
+
+        // Lưu câu hỏi xuống SQL Server
+        function saveCurrentQuestion() {
+            var qId = parseInt($('#editQuestionId').val());
+            var qNum = parseInt($('#editQuestionNumber').val());
+            var stem = $('#editStem').val();
+            var explanation = $('#editExplanation').val();
+            var correct = $('input[name="correctOption"]:checked').val();
+
+            if (!stem || stem.trim().length === 0) {
+                abp.message.warn('Nội dung câu hỏi không được để trống!');
+                return;
+            }
+
+            if (!correct) {
+                abp.message.warn('Vui lòng chọn 1 đáp án đúng (A/B/C/D)!');
+                return;
+            }
+
+            var options = ['A', 'B', 'C', 'D'].map(function (key) {
+                return {
+                    Id: parseInt($('#id-opt-' + key).val()) || 0,
+                    OptionKey: key,
+                    Content: $('#text-opt-' + key).val()
+                };
+            });
+
+            var input = {
+                Id: qId,
+                Stem: stem,
+                Explanation: explanation,
+                CorrectOption: correct,
+                Options: options
+            };
+
+            $('#btnSaveQuestion').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Đang lưu...');
+
+            $.ajax({
+                url: '@Url.Action("UpdateQuestion", "ToeicAdmin")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(input),
+                success: function (res) {
+                    $('#btnSaveQuestion').prop('disabled', false).html('<i class="fas fa-save mr-1"></i> Lưu cập nhật câu này');
+                    if (res && res.success) {
+                        clearDirty();
+                        abp.notify.success('Đã lưu thành công Câu ' + qNum + ' vào SQL Server!');
+
+                        // Cập nhật dữ liệu in-memory
+                        var q = examData.Questions.find(x => x.Id === qId);
+                        if (q) {
+                            q.Stem = stem;
+                            q.Explanation = explanation;
+                            q.CorrectOption = correct;
+                            q.Options = options.map(o => ({
+                                Id: o.Id,
+                                QuestionId: qId,
+                                OptionKey: o.OptionKey,
+                                Content: o.Content,
+                                IsCorrect: (o.OptionKey === correct)
+                            }));
+                        }
+                        $('#matrix-key-' + qNum).text(correct);
+                    } else {
+                        abp.message.error((res && res.message) ? res.message : 'Lỗi khi cập nhật câu hỏi');
+                    }
+                },
+                error: function (xhr) {
+                    $('#btnSaveQuestion').prop('disabled', false).html('<i class="fas fa-save mr-1"></i> Lưu cập nhật câu này');
+                    abp.message.error('Lỗi kết nối máy chủ: ' + (xhr.statusText || xhr.status));
+                }
+            });
+        }
+
+        function togglePublish(examId, isPublish) {
+            var actionText = isPublish ? "xuất bản cho học viên thi" : "chuyển về bản nháp";
+            abp.message.confirm(
+                'Bạn có chắc chắn muốn ' + actionText + ' đề thi này?',
+                'Xác nhận trạng thái đề',
+                function (isConfirmed) {
+                    if (isConfirmed) {
+                        $.post('@Url.Action("Publish", "ToeicAdmin")', { id: examId, isPublished: isPublish }, function (res) {
+                            if (res && res.success) {
+                                abp.notify.success('Cập nhật trạng thái thành công!');
+                                setTimeout(function () { location.reload(); }, 800);
+                            } else {
+                                abp.message.error('Cập nhật trạng thái thất bại!');
+                            }
+                        });
+                    }
+                }
+            );
+        }
+    </script>
+}

@@ -1,0 +1,18 @@
+@using MyCompany.MyProject.Web.Views.Shared.Components.SideBarUserArea
+@model SideBarUserAreaViewModel
+
+<div class="user-panel mt-3 pb-3 mb-3 d-flex">
+    <div class="image">
+        <img src="~/img/avatar.png" class="img-circle elevation-2" alt="User Image">
+    </div>
+    <div class="info">
+        @if (Model.LoginInformations?.User != null)
+        {
+            <a class="d-block" href="javascript:void(0);">@Html.Raw(Model.GetShownLoginName())</a>
+        }
+        else
+        {
+            <a class="d-block text-warning" asp-controller="Account" asp-action="Login"><i class="fas fa-sign-in-alt mr-1"></i>Đăng nhập</a>
+        }
+    </div>
+</div>
